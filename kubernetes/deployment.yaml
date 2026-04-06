@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: conference-webpage-deployment
+  labels:
+    app: conference-webpage
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: conference-webpage
+  template:
+    metadata:
+      labels:
+        app: conference-webpage
+    spec:
+      containers:
+      - name: conference-webpage-container
+        image: your-image-here:latest
+        ports:
+        - containerPort: 80
