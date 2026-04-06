@@ -1,0 +1,96 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_IMAGE = 'conference-webpage'
+        DOCKER_TAG = 'latest'
+        DOCKER_REGISTRY = 'your-dockerhub-username' // Change this
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out source code...'
+                checkout scm
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                echo 'Building Docker image...'
+                script {
+                    sh 'docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .'
+                    sh 'docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}'
+                }
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                echo 'Testing containerized application...'
+                script {
+                    sh '''
+                    docker run --rm ${DOCKER_IMAGE}:${DOCKER_TAG} \
+                    test -f /usr/share/nginx/html/index.html && \
+                    echo "HTML file found - Test passed!"
+                    '''
+                }
+            }
+        }
+        
+        stage('Push to Registry') {
+            steps {
+                echo 'Pushing image to Docker registry...'
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
+                        docker logout
+                        '''
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy to Kubernetes') {
+            steps {
+                echo 'Deploying to Kubernetes cluster...'
+                script {
+                    sh '''
+                    kubectl set image deployment/conference-web \
+                    conference-web=${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG} \
+                    -n default --record || \
+                    kubectl apply -f deployment.yaml
+                    '''
+                }
+            }
+        }
+        
+        stage('Verify Deployment') {
+            steps {
+                echo 'Verifying Kubernetes deployment...'
+                script {
+                    sh '''
+                    kubectl get pods
+                    kubectl get svc
+                    kubectl rollout status deployment/conference-web
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Check logs above.'
+        }
+        always {
+            echo 'Cleaning up...'
+            sh 'docker image prune -f'
+        }
+    }
+}
