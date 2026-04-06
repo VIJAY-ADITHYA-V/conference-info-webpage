@@ -1,0 +1,43 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header {
+    background: #007BFF;
+    color: white;
+    padding: 10px 0;
+    text-align: center;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 2.5em;
+}
+
+ nav {
+    margin: 20px 0;
+}
+
+nav a {
+    color: #007BFF;
+    text-decoration: none;
+    margin: 0 15px;
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+.section {
+    margin: 40px 0;
+    padding: 20px;
+    border: 1px solid #ddd;
+}
+
+.footer {
+    text-align: center;
+    padding: 10px 0;
+    background: #f1f1f1;
+}
